@@ -2,25 +2,27 @@
  * Купюра, которая обязательно должна быть выдана по запросу.
  */
 const mandatory = 2000;
+
+/**
+ * Минимальный номинал купюры для размена.
+ */
+const minimumFaceValue = 50;
+
 /**
  * Массив в которые будут помещены купюры при размене числа.
  */
 let cashArr = [];
+
 /**
  * Корзина, в которую мы положим купюры.
  */
 let basket = [];
-/**
- * Минимальный номинал купюры для размена.
- */
-let minimumFaceValue = 50;
 
 /**
- * Настроить корзину.
- * @param {array} parArr
+ * Настроить банк.
+ * @param {array} parArr Массив номинала.
  */
 function setBank(parArr) {
-  minimumFaceValue = Math.min(...parArr);
   cashArr = [];
   basket = [];
   parArr.forEach(bill => {
@@ -35,7 +37,7 @@ function setBank(parArr) {
 function change(amount) {
   let bill = null;
   let isFound = false;
-  // Я понимаю, что while рискованный выбор, но в данном случае, с учетом условий задачи, ограничений входящиз параметров и решения в целом, он защищен от риска уйти в бессконечную итерацию.
+  // Я понимаю, что while рискованный выбор, но в данном случае, с учетом условий задачи, ограничений входящих параметров и решения в целом, он защищен от риска уйти в бессконечную итерацию.
   while (!isFound) {
     const index = getRandomNum(0, basket.length - 1);
     const isBalanceMinimal = checkMinimumBills(amount);
@@ -46,7 +48,7 @@ function change(amount) {
       cashArr.push(bill.sum);
       isFound = true;
     } else if (!isBalanceMinimal) {
-      console.log(basket, `RESIDUAL: ${amount}`);
+      console.log({BASKET: basket, RESIDUAL: amount});
       throw new Error("Извините, мы не можем выдать вам всю сумму, в корзине нет купюр нужного номнинала!");
     }
   }
@@ -73,16 +75,28 @@ function getRandomNum(min, max) {
 
 /**
  * Выдать купюры по запросу.
- * @param {number} sum
- * @param {array} parArr
+ * @param {number} sum сумма к выдачи
+ * @param {array} parArr массив номинала
  */
-function cashDispenser(sum = 92300, parArr = [5000, mandatory, 1000, 100, 50]) {
-  if (!sum || sum < mandatory || sum % 50 > 0)
+function cashDispenser(sum = 92300, parArr = [5000, mandatory, 1000, 100, minimumFaceValue]) {
+  if (!sum || sum < mandatory || sum % minimumFaceValue > 0)
     throw new Error(
-      "Передано невалидное число, число должно быть более 2000 и кратным 50!"
+      `Передано невалидное число, число должно быть более ${mandatory} и кратным ${minimumFaceValue}!`
     );
   if (!parArr || parArr.length < 4)
     throw new Error("Корзина должна состоять из 5 купюр разного номинала!");
+
+  // Это обязательное условие при кратности, иначе, мы не сможем выдать всю сумму.
+  if (parArr.filter((nal) => nal === minimumFaceValue).length === 0) 
+    throw new Error(`Корзина должна содержать номинал ${minimumFaceValue}!`);
+
+  // Это соответствует условию задачи.
+  if (parArr.filter((nal) => nal === mandatory).length === 0) 
+    throw new Error(`Корзина должна содержать номинал ${mandatory}!`);
+
+  // Это соответствует условию задачи, иначе мы не сможем выдать всю сумму из кратности 50.
+  if (parArr.filter((nal) => nal < minimumFaceValue).length > 0) 
+    throw new Error(`Корзина не может содержать номинал ниже ${minimumFaceValue}!`);
 
   setBank(parArr);
 
@@ -90,10 +104,9 @@ function cashDispenser(sum = 92300, parArr = [5000, mandatory, 1000, 100, 50]) {
 
   cashArr.push(mandatory);
   amount -= mandatory;
-  // Я понимаю, что while рискованный выбор, но в данном случае с учетом условий задачи, ограничений входящиз параметров и решения в целом, он защищен от риска уйти в бессконечную итерацию.
+  // Я понимаю, что while рискованный выбор, но в данном случае с учетом условий задачи, ограничений входящих параметров и решения в целом, он защищен от риска уйти в бессконечную итерацию, просто запустите скрипт и убедитесь.
   while (amount >= minimumFaceValue) {
-    const bill = change(amount);
-    amount -= bill;
+    amount -= change(amount);
   }
 
   console.log({ cach: cashArr, amount });
@@ -102,21 +115,21 @@ function cashDispenser(sum = 92300, parArr = [5000, mandatory, 1000, 100, 50]) {
 /**
  * Функция для тестирования логики.
  */
-function testcashDispenser() {
+function testCashDispenser() {
   setInterval(() => {
     let sum = 0;
     do {
-      sum = getRandomNum(2000, 100000);
-    } while (sum % 50 != 0);
+      sum = getRandomNum(mandatory, 100000);
+    } while (sum % minimumFaceValue != 0);
 
     console.log(`AMOUNT OF MONEY FOR ISSUANCE: ${sum}`);
     
     try {
-      cashDispenser(sum);
+      cashDispenser(sum, [1000, 300, 50, 2000, 5000]);
     } catch (error) {
       console.error(error.message);
     }
   }, 1000);
 }
 
-testcashDispenser();
+testCashDispenser();
